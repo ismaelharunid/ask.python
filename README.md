@@ -4,7 +4,7 @@ A simple ask function and factory written in python for use as module or from CL
 ## Installation as command
 ```
 git clone <this repository>
-cp ./pythonask/ask.py /some/place/in/path/
+cp ./pythonask/ask.python /some/place/in/path/
 chmod +x /some/place/in/path/ask.py  # to use from command line
 ````
 
