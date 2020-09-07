@@ -53,13 +53,13 @@ Notes:
 ## Simple usage from python
 ```
 from ask import ask
-answer = ask("Continue?", "Yes, No")
+answer = ask("Continue[Yes, No]?", "Please answer Yes or No")
 ```
 
 ## Factory usage from python
 ```
 import ask
-query = ask.new("Continue?", "Yes, No")
+query = ask.new("Continue?", accepted="Yes, No")
 answer = query()
 ```
 
