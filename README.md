@@ -10,11 +10,13 @@ chmod +x /some/place/in/path/ask.py  # to use from command line
 
 ## Usage from command line
 ```
-$ ./ask.py "Do you want to continue\[Yes, Quit]?"
-
+$ ./ask.py "Do you want to continue[Yes, Quit]?"
 Do you want to continue [yes, quit]? q
-
 quit
+
+$ ./ask.py "Do you want to continue?" -r No,nOt,nEver
+Do you want to continue [no, nOt, nEver]? E
+never
 ```
 
 ## Help usage
