@@ -2,18 +2,24 @@
 A simple ask function and factory written in python for use as module or from CLI.
 
 ## Installation as command
+```
 git clone <this repository>
 cp ./pythonask/ask.py /some/place/in/path/
 chmod +x /some/place/in/path/ask.py  # to use from command line
+````
 
 ## Usage from command line
+```
 $ ./ask.py "Do you want to continue\[Yes, Quit]?"
 
 Do you want to continue [yes, quit]? q
 
 quit
+```
 
-
+## Help usage
+```
+$ ./ask.py -h
 Usage: ask [options] question default message
 question        The question to ask
 default         The default answer used for no response
@@ -35,14 +41,18 @@ Notes:
     against the accepted answers.
  ** All options that require a value are space delimited, 
     equal symbols("=") are not accepred.
+```
 
 ## Simple usage from python
+```
 from ask import ask
 answer = ask("Continue?", "Yes, No")
+```
 
 ## Factory usage from python
+```
 import ask
 query = ask.new("Continue?", "Yes, No")
 answer = query()
-
+```
 
