@@ -71,7 +71,7 @@ def ask_help():
     print('default         The default answer used for no response')
     print('message         The reject response message')
     print('Options:')
-    print('  -a answer   **The previous answer.')
+    print('  -a answer   **The previous answer (for maintaining state).')
     print('  -n tries    **The number of tries.')
     print('  -r accepted   Comma seperated accepted responses.')
     print('  -v            Increase verbosity.')
