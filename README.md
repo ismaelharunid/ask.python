@@ -14,8 +14,8 @@ $ ./ask.py "Do you want to continue[Yes, Quit]?"
 Do you want to continue [yes, quit]? q
 quit
 
-$ ./ask.py "Do you want to continue?" -r No,nOt,nEver
-Do you want to continue [no, nOt, nEver]? E
+$ ./ask.py "Do you want to continue?" -r No,nEver
+Do you want to continue [no, nEver]? E
 never
 ```
 
@@ -29,7 +29,7 @@ message         The reject response message
 Options:
   -a answer   \*\*The previous answer.
   -n tries    \*\*The number of tries.
-  -r responses  comma seperated accepted responses 
+  -r responses  Comma seperated accepted responses 
   -v            Increase verbosity.
   -q            Decrease verbosity.
   -?,-h,--help  Prints this message.
