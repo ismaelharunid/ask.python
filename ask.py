@@ -13,7 +13,11 @@ except:
     from collections import Sequence
 
 
-def new(question, accepted=None, default=None, message=None, tries=100):
+ask_version = "0.1b"
+
+
+def new(question="Continue?", message=None, accepted=None, default=None,
+        tries=100, verbosity=2):
     pattern = r"^([^\[\]?:.]+)(?:\[([^\]]*)\]\s*)?(?:([?:.])\s*)?$"
     m = re.match(pattern, question) if question and type(question) is str \
             else None
@@ -25,7 +29,7 @@ def new(question, accepted=None, default=None, message=None, tries=100):
     if type(accepted) is str:
         accepted = accepted.split(",")
     if not isinstance(accepted, Sequence):
-        raise ValueError("Invalid accepted argument.")
+        raise ValueError("Invalid or missing \"accepted\" argument.")
     accepted = tuple(s for s in (s.strip() for s in accepted) if s)
     fc = lambda s: ''.join(c.lower() if c.isupper() else '' for c in s)[:1] \
             or None
@@ -34,104 +38,150 @@ def new(question, accepted=None, default=None, message=None, tries=100):
     question = "{:s} [{:s}]{:s} " \
             .format(question, ", ".join(accepted), punctuation or "?")
 
-    def ask(answer=None, verbosity=2):
-        nonlocal accepted, default, message, question, singles, tries
+    def ask(question=question, message=message, previous=None,
+            tries=100, verbosity=verbosity):
+        nonlocal accepted, default, singles
         if verbosity < 2:
-            if answer not in accepted and answer not in singles:
-                answer = default or accepted[0] or None
+            if previous not in accepted and previous not in singles:
+                previous = default or accepted[0] or None
         else:
             try_count = 0
-            while answer not in accepted and try_count < tries:
-                answer = input(question).lower()
-                if answer:
-                    if len(answer) == 1 and answer.lower() in singles:
-                        return accepted[singles.index(answer)]
+            while previous not in accepted and try_count < tries:
+                previous = input(question).lower()
+                if previous:
+                    if len(previous) == 1 and previous.lower() in singles:
+                        return accepted[singles.index(previous)]
                     for a in accepted:
-                        if answer == a[:len(answer)]:
+                        if previous == a[:len(previous)]:
                             return a
                 try_count += 1
                 if message and type(message) is str:
                     print(message)
             else:
-                answer = default or accepted[0] or None
-        return answer
+                previous = default or accepted[0] or None
+        return previous
 
     return ask
 
 
-def ask(question, answer=None, accepted=None, default=None,
-        message=None, verbosity=2, tries=100):
-    return new(question, accepted, default, message, tries) \
-            (answer, verbosity)
+def ask(question, message=None, accepted=None, default=None,
+        tries=100, verbosity=2, previous=None):
+    return new(question, message, accepted, default, tries, verbosity) \
+            (previous=previous)
 
-def ask_help():
-    print('Usage: ask [options] question default message')
-    print('question        The question to ask')
-    print('accepted       *Accepted answers (comma seperated)')
-    print('default         The default answer used for no response')
-    print('message         The reject response message')
+
+def ask_help(short=False):
+    print('ask.py (version {:}) -- query a stdin response.'.format(ask_version))
+    print('Usage: ask.py [options] question message')
+    if short:
+        return
     print('Options:')
-    print('  -a answer   **The previous answer (for maintaining state).')
-    print('  -n tries    **The number of tries.')
-    print('  -r accepted   Comma seperated accepted responses.')
-    print('  -v            Increase verbosity.')
-    print('  -q            Decrease verbosity.')
-    print('  -?,-h,--help  Prints this message.')
+    print('  -?,-h,--help            Prints this text.')
+    print('  -a,--accepted=answers   Comma seperated accepted answers.')
+    print('  -d,--default=default    Use default answer if empty response.')
+    print('  -i,--input=file         Read input from file.')
+    print('  -n,--tries=tries        The number of tries before using default.')
+    print('  -o,--output=file        Send output to file.')
+    print('  -p,--previous=answer    The previous answer (maintain state).')
+    print('  -q,-quiet               Set verbosity to 0.')
+    print('  -v,-vv,-vvv,-vvvv       Set verbosity to 1, 2, 3, 4.')
+    print('  --                      Terminates argument parsing.')
+    print('Arguments:')
+    print('  question                The question to ask.')
+    print('  message                 The rejected response message.')
     print('Notes:')
-    print('  * The accepted argument is optional only if accepted ')
-    print('     values are comma seperated and "[", "]" encapsulated ')
-    print('    within the question.')
-    print('  * The accepted understands captiol letters as single ')
-    print('    character that will be expanded to a full response.  ')
-    print('    Otherwise it will match only the first n characters ')
-    print('    against the accepted answers.')
-    print(' ** All options that require a value are space delimited, ')
-    print('    equal symbols("=") are not accepred.')
+    print('  * A dash("-") can be used to represent an empty argument.')
+    print('  * The "accepted" argument is optional only if embedded as a ')
+    print('    comma seperated encapsulated("[", "]") list in the question.')
+    print('  * Accepted answers may include a capitalize letter to offer ')
+    print('    single character responses.  Otherwise answers will match ')
+    print('    only the first n characters of input.')
+    print('  * Verbosity is set using "-v" and "-q", multiple v\'s may be ')
+    print('    used with a single dash("-"), where "-q"=silent, ')
+    print('    "-v"=errors, "-vv"=normal and "-vvv"=debug.')
 
 
 def main():
     from sys import argv
-    args, kwargs = list(argv[1:]), { "verbosity" : 2, "answer": None }
+    args, kwargs = list(argv[1:]), { }
     argi, argc = 0, len(args)
-    showhelp, exitvalue, out, err = False, 0, sys.stdout, sys.stderr
+    showhelp, exitvalue = False, 0
+    inp, out, err = sys.stdin, sys.stdout, sys.stderr
+    def getargs(arg=None, t=str):
+        nonlocal args
+        result = None
+        if type(arg) is str and '=' in arg:
+            result = arg[arg.index('=') + 1:]
+        if argi + 1 < argc:
+            result = args.pop(argi + 1)
+            argc -= 1
+        if type(result) is str:
+            result = None if result in ("-", "") else t(result)
+        return result
     while argi < argc and exitvalue == 0:
-        arg = args[argi]
+        arg, argarg = args[argi], None
         if arg.startswith("-"):
+            if arg == "--":
+                args = args[:argi]
+                break
             if len(arg) > 1:
                 args.pop(argi)
-                if arg.startswith("-v") and all(c == 'v' for c in arg[1:]):
-                    kwargs["verbosity"] += len(arg) - 1
-                elif arg.startswith("-q") and all(c == 'q' for c in arg[1:]):
-                    kwargs["verbosity"] -= len(arg) - 1
-                elif arg == "-a" and argi + 1 < argc:
-                    kwargs["answer"] = args.pop(argi)
-                    argc -= 1
-                elif arg == "-n" and argi + 1 < argc:
-                    kwargs["tries"] = int(args.pop(argi))
-                    argc -= 1
-                elif arg == "-r" and argi + 1 < argc:
-                    kwargs["accepted"] = args.pop(argi)
-                    argc -= 1
+                argc -= 1
+                if '=' in arg:
+                    i = arg.index('=') 
+                    arg, argarg = arg[:i], arg[i+1:]
+                if arg in ("-a", "--accepted"):
+                    kwargs["accepted"] = getargs(argarg)
+                elif arg in ("-d", "--default"):
+                    kwargs["default"] = getargs(argarg)
+                elif arg in ("-i", "--output"):
+                    inp = getargs(argarg)
+                    if inp is None:
+                        inp = sys.stdin
+                elif arg in ("-o", "--output"):
+                    out = getargs(argarg)
+                    if out is None:
+                        out = sys.stdout
+                elif arg in ("-p", "--previous"):
+                    kwargs["previous"] = getargs(argarg)
+                elif arg in("-q", "--quiet"):
+                    kwargs["verbosity"] = 0
+                elif arg in ("-n", "--tries"):
+                    kwargs["tries"] = getargs(argarg, int)
+                elif arg.startswith("-v") and all(c == 'v' for c in arg[1:]):
+                    kwargs["verbosity"] = len(arg) - 1
                 elif arg in ("-?", "-h", "--help"):
                     showhelp = True
                 else:
-                    print("bad switch or option: {:}".format(arg), file=err)
+                    print("[Error] bad switch or option: {:}".format(arg),
+                          file=err)
                     showhelp = True
                     exitvalue = -1
-                argc -= 1
                 continue
             args[argi] = None
         argi += 1
+    if argc > 2:
+        print("[Error] extra arguments: {:}".format(', '.join(args[2:])),
+              file=err)
+        showhelp = True
+        exitvalue = -1
     if argc == 0 or showhelp:
         ask_help()
     elif exitvalue == 0:
+        if kwargs["verbosity"] >= 4:
+            print("args: {:}".format(', '.join(repr(a) for a in args)), file=err)
+            print("kwargs: {:}"
+                  .format(', '.join("{:}: {:}"
+                                    .format(repr(k), repr(a))
+                                            for (k, a) in kwargs.items())),
+                  file=err)
         try:
             answer = ask(*args, **kwargs)
-            print(answer)
+            print(answer, file=out)
         except ValueError as ve:
             exitvalue = -1
-            print("Error: {:}".format(str(ve)), file=err)
-            ask_help()
+            print("[Error] {:}".format(str(ve)), file=err)
+            ask_help(True)
     exit(exitvalue)
 
 
