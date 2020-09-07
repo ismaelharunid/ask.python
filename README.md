@@ -27,8 +27,8 @@ question        The question to ask
 default         The default answer used for no response
 message         The reject response message
 Options:
-  -a answer   \*\*The previous answer.
-  -n tries    \*\*The number of tries.
+  -a answer   **The previous answer (for maintaining state).
+  -n tries    **The number of tries.
   -r responses  Comma seperated accepted responses 
   -v            Increase verbosity.
   -q            Decrease verbosity.
